@@ -4,6 +4,8 @@ import { useRef } from "react";
 import { createTodo } from "../actions/todo.action";
 import ButtonForm from "./ButtonForm.todo";
 import toast from "react-hot-toast";
+import { TodoZodSchema } from "../schema/todo.zod.schema";
+import { ZodError } from "zod";
 
 const FormTodo = () => {
   const formRef = useRef<HTMLFormElement>(null);
@@ -11,19 +13,25 @@ const FormTodo = () => {
   const handleSubmit = async (data: FormData) => {
     const title = data.get("title") as string;
 
-    if (!title || !title.trim()) {
-      return toast.error("Title is required");
-    }
+    try {
+      //TodoZodSchema.parse({title})
 
-    const res = await createTodo(title);
+      const responseBackend = await createTodo(title);
 
-    if(res.error){
-        return toast.error(res.error)
+      if(!responseBackend.success){
+        return toast.error(responseBackend.message)
+      }
+
+    } catch (error) {
+      if(error instanceof ZodError){
+        console.log(error.issues);
+        return error.issues.map((issue) => toast.error(issue.message));
+      }
+      
+    }finally{
+      formRef.current?.reset();
     }
     
-    formRef.current?.reset();
-
-    toast.success("ToDo added")
   };
 
   return (
